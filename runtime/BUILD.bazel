@@ -1,0 +1,31 @@
+load("@rules_python//python:defs.bzl", "py_binary", "py_test")
+
+package(default_visibility = ["//visibility:public"])
+
+exports_files([
+    "entry.py",
+    "install.py",
+])
+
+py_binary(
+    name = "assemble",
+    srcs = ["assemble.py"],
+)
+
+py_test(
+    name = "tests",
+    size = "small",
+    srcs = [
+        "assemble.py",
+        "entry.py",
+        "install.py",
+        "test_runtime.py",
+    ],
+    data = [
+        "//products/sensors:camera.dag",
+        "//products/sensors:lidar.dag",
+        "//products/sensors:sensors.launch",
+    ],
+    imports = ["."],
+    main = "test_runtime.py",
+)

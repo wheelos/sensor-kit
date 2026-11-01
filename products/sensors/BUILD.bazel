@@ -1,0 +1,91 @@
+load("@bazel_skylib//rules:common_settings.bzl", "string_flag")
+load("//build:runtime.bzl", "product_delivery", "product_runtime", "required_input")
+
+package(default_visibility = ["//visibility:public"])
+
+exports_files([
+    "camera.dag",
+    "lidar.dag",
+    "sensors.launch",
+])
+
+string_flag(
+    name = "selection",
+    build_setting_default = "none",
+    values = [
+        "none",
+        "camera",
+        "lidar",
+        "combined",
+    ],
+)
+
+[
+    config_setting(
+        name = choice,
+        flag_values = {":selection": choice},
+    )
+    for choice in [
+        "camera",
+        "lidar",
+        "combined",
+    ]
+]
+
+required_input(
+    name = "selection_required",
+    message = "Choose --config=sensors-camera, sensors-lidar or sensors-combined.",
+)
+
+required_input(
+    name = "configuration_required",
+    message = "Supply camera_config/lidar_config label flags with reviewed device configuration files.",
+)
+
+label_flag(
+    name = "camera_config",
+    build_setting_default = ":configuration_required",
+)
+
+label_flag(
+    name = "lidar_config",
+    build_setting_default = ":configuration_required",
+)
+
+product_runtime(
+    name = "runtime",
+    components = select({
+        ":camera": ["@hardware.camera//:component"],
+        ":lidar": ["@hardware.lidar//:hesai"],
+        ":combined": [
+            "@hardware.camera//:component",
+            "@hardware.lidar//:hesai",
+        ],
+        "//conditions:default": [":selection_required"],
+    }),
+    configs = select({
+        ":camera": {":camera_config": "share/sensors/camera.pb.txt"},
+        ":lidar": {":lidar_config": "share/sensors/lidar.pb.txt"},
+        ":combined": {
+            ":camera_config": "share/sensors/camera.pb.txt",
+            ":lidar_config": "share/sensors/lidar.pb.txt",
+        },
+        "//conditions:default": {},
+    }),
+    product = "sensors",
+    templates = ["sensors.launch"] + select({
+        ":camera": ["camera.dag"],
+        ":lidar": ["lidar.dag"],
+        ":combined": [
+            "camera.dag",
+            "lidar.dag",
+        ],
+        "//conditions:default": [],
+    }),
+    tools = {
+        "@wheelos_core//tools:cyber_recorder": "cyber_recorder",
+        "@wheelos_core//tools:cyber_monitor": "cyber_monitor",
+    },
+)
+
+product_delivery(":runtime")

@@ -1,0 +1,2 @@
+# Packaging/ELF validation only: intentionally no device configuration.
+# Never initialize a sensor component using this file.

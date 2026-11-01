@@ -1,0 +1,10 @@
+module_config {
+  module_library: "@RUNTIME_ROOT@/lib/libsynthetic_sensor.so"
+  timer_components {
+    class_name: "SyntheticSensor"
+    config {
+      name: "synthetic_sensor"
+      interval: 20
+    }
+  }
+}

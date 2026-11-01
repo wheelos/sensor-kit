@@ -1,0 +1,10 @@
+module_config {
+  module_library: "@RUNTIME_ROOT@/lib/libhesai_component.so"
+  components {
+    class_name: "HesaiComponent"
+    config {
+      name: "lidar"
+      config_file_path: "@CONFIG_ROOT@/share/sensors/lidar.pb.txt"
+    }
+  }
+}

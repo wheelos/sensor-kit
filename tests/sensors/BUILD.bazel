@@ -1,0 +1,65 @@
+load("@rules_cc//cc:defs.bzl", "cc_binary")
+load("@rules_python//python:defs.bzl", "py_test")
+load("//build:runtime.bzl", "product_runtime")
+
+package(default_visibility = ["//visibility:private"])
+
+cc_binary(
+    name = "libsynthetic_sensor.so",
+    testonly = True,
+    srcs = ["synthetic_sensor.cc"],
+    linkshared = True,
+    linkstatic = False,
+    deps = [
+        "@wheelos_core//cyber",
+        "@wheelos_msgs//wheelos_msgs/sensor_msgs:sensor_image_cc_proto",
+    ],
+)
+
+cc_binary(
+    name = "record_probe",
+    testonly = True,
+    srcs = ["record_probe.cc"],
+    deps = [
+        "@wheelos_core//cyber/record:record_reader",
+        "@wheelos_msgs//wheelos_msgs/sensor_msgs:sensor_image_cc_proto",
+    ],
+)
+
+product_runtime(
+    name = "synthetic_runtime",
+    testonly = True,
+    components = [":libsynthetic_sensor.so"],
+    product = "sensors",
+    templates = [
+        "synthetic.dag",
+        "//products/sensors:sensors.launch",
+    ],
+    tools = {
+        "@wheelos_core//tools:cyber_monitor": "cyber_monitor",
+        "@wheelos_core//tools:cyber_recorder": "cyber_recorder",
+    },
+)
+
+py_test(
+    name = "integration",
+    size = "medium",
+    timeout = "short",
+    srcs = ["integration_test.py"],
+    args = [
+        "$(rlocationpath :synthetic_runtime)",
+        "$(rlocationpath :record_probe)",
+        "$(rlocationpath //products/sensors:runtime)",
+    ],
+    data = [
+        ":record_probe",
+        ":synthetic_runtime",
+        "//products/sensors:runtime",
+    ],
+    main = "integration_test.py",
+    tags = [
+        "exclusive",
+        "manual",
+    ],
+    deps = ["@rules_python//python/runfiles"],
+)

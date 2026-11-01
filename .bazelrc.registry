@@ -1,0 +1,3 @@
+# Independent published sources only; no source-tree registry fallback.
+common --registry=https://bcr.wheelos.cn/
+common --registry=https://bcr.bazel.build/
