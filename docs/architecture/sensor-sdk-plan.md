@@ -74,3 +74,10 @@ Production needs immutable hosted modules/SDK, a reviewed remote lock, ABI
 compatibility, valid calibration/configuration and approved device tests.
 Frame/drop rate, timing/synchronization, data quality and a live performance
 client are independent acceptance items, not consequences of `doctor`.
+# Current runtime implementation
+
+The shared-core implementation supersedes earlier standalone packaging details
+below. `//products/sensors:module` contributes sensor components/business
+resources; `@wheelos_core//runtime` owns final assembly, tools and authoritative
+middleware configuration. See [current integration](../build/bazel-integration.md)
+and [operation](../operations/sensor-runtime.md).

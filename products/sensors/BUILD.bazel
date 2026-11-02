@@ -1,5 +1,7 @@
 load("@bazel_skylib//rules:common_settings.bzl", "string_flag")
-load("//build:runtime.bzl", "product_delivery", "product_runtime", "required_input")
+load("@rules_pkg//pkg:install.bzl", "pkg_install")
+load("@rules_pkg//pkg:tar.bzl", "pkg_tar")
+load("//build:runtime.bzl", "required_input", "runtime_layout", "runtime_module", "runtime_package", "runtime_run")
 
 package(default_visibility = ["//visibility:public"])
 
@@ -52,8 +54,8 @@ label_flag(
     build_setting_default = ":configuration_required",
 )
 
-product_runtime(
-    name = "runtime",
+runtime_module(
+    name = "module",
     components = select({
         ":camera": ["@hardware.camera//:component"],
         ":lidar": ["@hardware.lidar//:hesai"],
@@ -63,29 +65,52 @@ product_runtime(
         ],
         "//conditions:default": [":selection_required"],
     }),
-    configs = select({
-        ":camera": {":camera_config": "share/sensors/camera.pb.txt"},
-        ":lidar": {":lidar_config": "share/sensors/lidar.pb.txt"},
+    files = select({
+        ":camera": {
+            ":camera_config": "modules/sensors/conf/camera.pb.txt",
+            "camera.dag": "modules/sensors/dag/camera.dag",
+            "camera.launch": "modules/sensors/launch/sensors.launch",
+        },
+        ":lidar": {
+            ":lidar_config": "modules/sensors/conf/lidar.pb.txt",
+            "lidar.dag": "modules/sensors/dag/lidar.dag",
+            "lidar.launch": "modules/sensors/launch/sensors.launch",
+        },
         ":combined": {
-            ":camera_config": "share/sensors/camera.pb.txt",
-            ":lidar_config": "share/sensors/lidar.pb.txt",
+            ":camera_config": "modules/sensors/conf/camera.pb.txt",
+            ":lidar_config": "modules/sensors/conf/lidar.pb.txt",
+            "camera.dag": "modules/sensors/dag/camera.dag",
+            "lidar.dag": "modules/sensors/dag/lidar.dag",
+            "sensors.launch": "modules/sensors/launch/sensors.launch",
         },
         "//conditions:default": {},
     }),
-    product = "sensors",
-    templates = ["sensors.launch"] + select({
-        ":camera": ["camera.dag"],
-        ":lidar": ["lidar.dag"],
-        ":combined": [
-            "camera.dag",
-            "lidar.dag",
-        ],
-        "//conditions:default": [],
-    }),
-    tools = {
-        "@wheelos_core//tools:cyber_recorder": "cyber_recorder",
-        "@wheelos_core//tools:cyber_monitor": "cyber_monitor",
-    },
+    module_name = "sensors",
 )
 
-product_delivery(":runtime")
+runtime_layout(
+    name = "runtime",
+    modules = [":module"],
+)
+
+runtime_package(
+    name = "package_files",
+    runtime = ":runtime",
+)
+
+runtime_run(
+    name = "run",
+    runtime = ":runtime",
+)
+
+pkg_tar(
+    name = "package",
+    srcs = [":package_files"],
+    extension = "tar.gz",
+    package_file_name = "runtime.tar.gz",
+)
+
+pkg_install(
+    name = "install",
+    srcs = [":package_files"],
+)

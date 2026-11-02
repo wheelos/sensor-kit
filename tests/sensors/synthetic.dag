@@ -1,5 +1,5 @@
 module_config {
-  module_library: "@RUNTIME_ROOT@/lib/libsynthetic_sensor.so"
+  module_library: "bazel-bin/tests/sensors/libsynthetic_sensor.so"
   timer_components {
     class_name: "SyntheticSensor"
     config {

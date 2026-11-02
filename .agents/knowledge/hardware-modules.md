@@ -6,14 +6,17 @@
   Bzlmod modules. No vehicle-infra checkout or product dependency is required.
 - `hardware.build` supplies shared FFmpeg rules; the root selects SDK inputs.
   SDK archive mode is the default, local discovery is explicit development mode.
-- `build/runtime.bzl` collects declared component/Cyber runfiles and SDK metadata.
-- The product explicitly delivers core's mainboard, launcher, recorder and
-  monitor. Shared entries establish artifact roots before native execution;
-  recorder/monitor retain caller-relative paths (`runtime/entry.py`).
-- `runtime/` renders relocatable configuration, combines selected DAGs and
-  installs without overwriting customer data. Its cache uses `sensor-infra`.
+- `products/sensors:module` contributes components, business files and declared
+  SDK dependencies through core's `RuntimeModuleInfo`; it owns no Cyber tools
+  or middleware configuration. `build/runtime.bzl` only re-exports core rules.
+- Core's `runtime_layout` assembles one tools/configuration root for one or more
+  module contributions. Public `bin/commands` entries establish artifact roots;
+  recorder/monitor retain caller-relative paths.
+- `products/sensors:runtime`, `:package` and `:install` use the same core layout
+  and official rules_pkg packaging. Multi-module systems consume `:module`,
+  rather than concatenating separately installed runtime trees.
 - Device configuration and selection are mandatory. No live performance client
-  or device acceptance is implied by a successful package or `doctor`.
+  or device acceptance is implied by a successful package or tool smoke test.
 - `tests/sensors` uses private synthetic images for Cyber tool validation and
   loads production plugins without instantiating devices; it is never shipped.
 - See [build](../../docs/build/bazel-integration.md) and

@@ -1,0 +1,13 @@
+package(default_visibility = ["//visibility:public"])
+
+filegroup(
+    name = "camera",
+    testonly = True,
+    srcs = ["camera.pb.txt"],
+)
+
+filegroup(
+    name = "lidar",
+    testonly = True,
+    srcs = ["lidar.pb.txt"],
+)

@@ -2,8 +2,8 @@
 
 import fcntl
 import os
-from pathlib import Path
 import pty
+import re
 import select
 import shutil
 import signal
@@ -15,6 +15,7 @@ import termios
 import time
 import unittest
 import uuid
+from pathlib import Path
 
 from python.runfiles import runfiles
 
@@ -36,8 +37,11 @@ class SensorIntegration(unittest.TestCase):
         output = b""
         try:
             process = subprocess.Popen(
-                [str(root / "bin/cyber_monitor"), "-c", topic],
-                env=dict(env, TERM="xterm"), stdin=slave, stdout=slave, stderr=slave,
+                [str(root / "bin/commands/cyber_monitor"), "-c", topic],
+                env=dict(env, TERM="xterm"),
+                stdin=slave,
+                stdout=slave,
+                stderr=slave,
                 start_new_session=True,
             )
             deadline = time.monotonic() + 10
@@ -64,57 +68,122 @@ class SensorIntegration(unittest.TestCase):
                 root = Path(temporary) / "relocated runtime"
                 shutil.copytree(source, root)
                 topic = f"/sensor_infra/test/{uuid.uuid4().hex}/image"
-                env = dict(os.environ, CYBER_DOMAIN_ID="194", CYBER_IP="127.0.0.1",
-                           GLOG_logtostderr="1", SENSOR_INFRA_TEST_TOPIC=topic,
-                           XDG_CACHE_HOME=str(Path(temporary) / "cache"))
+                env = dict(
+                    os.environ,
+                    CYBER_DOMAIN_ID=str(130 + int(topic.split("/")[-2][:4], 16) % 30),
+                    CYBER_IP="127.0.0.1",
+                    GLOG_logtostderr="1",
+                    SENSOR_INFRA_TEST_TOPIC=topic,
+                    XDG_CACHE_HOME=str(Path(temporary) / "cache"),
+                )
                 env.pop("WHEELOS_CONFIG_ROOT", None)
                 log = Path(temporary) / "sensor.log"
                 recorder_log = Path(temporary) / "recorder.log"
                 recorder = None
                 with log.open("w") as output:
                     arguments = (
-                        ["start", "share/sensors/sensors.launch"]
-                        if tool == "cyber_launch" else ["--dag_conf=share/sensors/selected.dag"]
+                        ["start", "modules/sensors/launch/sensors.launch"]
+                        if tool == "cyber_launch"
+                        else ["--dag_conf=modules/sensors/dag/synthetic.dag"]
                     )
                     process = subprocess.Popen(
-                        [str(root / "bin" / tool), *arguments], env=env,
-                        stdout=output, stderr=subprocess.STDOUT, start_new_session=True,
+                        [str(root / "bin/commands" / tool), *arguments],
+                        env=env,
+                        stdout=output,
+                        stderr=subprocess.STDOUT,
+                        start_new_session=True,
                     )
                     try:
                         with recorder_log.open("w") as recorder_output:
                             recorder = subprocess.Popen(
-                                [str(root / "bin/cyber_recorder"), "record", "-c", topic,
-                                 "-o", "./images.record", "-i", "0", "-m", "0"],
-                                cwd=temporary, env=env, stdout=recorder_output,
-                                stderr=subprocess.STDOUT, start_new_session=True,
+                                [
+                                    str(root / "bin/commands/cyber_recorder"),
+                                    "record",
+                                    "-c",
+                                    topic,
+                                    "-o",
+                                    "./images.record",
+                                    "-i",
+                                    "0",
+                                    "-m",
+                                    "0",
+                                ],
+                                cwd=temporary,
+                                env=env,
+                                stdout=recorder_output,
+                                stderr=subprocess.STDOUT,
+                                start_new_session=True,
                             )
+                        deadline = time.monotonic() + 15
+                        while not any(
+                            int(count) >= 5
+                            for count in re.findall(
+                                r"Progress: 1 channels, (\d+) messages",
+                                recorder_log.read_text(),
+                            )
+                        ):
+                            self.assertIsNone(
+                                recorder.poll(), recorder_log.read_text()[-6000:]
+                            )
+                            self.assertLess(
+                                time.monotonic(),
+                                deadline,
+                                recorder_log.read_text()[-6000:],
+                            )
+                            time.sleep(0.1)
                         self.check_monitor(root, env, topic)
-                        time.sleep(0.5)
                         self.assertIsNone(process.poll(), log.read_text()[-6000:])
-                        self.assertIsNone(recorder.poll(), recorder_log.read_text()[-6000:])
+                        self.assertIsNone(
+                            recorder.poll(), recorder_log.read_text()[-6000:]
+                        )
                         recorder.send_signal(signal.SIGINT)
                         recorder.wait(timeout=15)
-                        self.assertEqual(recorder.returncode, 0, recorder_log.read_text()[-6000:])
+                        self.assertEqual(
+                            recorder.returncode, 0, recorder_log.read_text()[-6000:]
+                        )
                         records = list(Path(temporary).glob("images.record*"))
-                        self.assertEqual(len(records), 1, recorder_log.read_text()[-6000:])
+                        self.assertEqual(
+                            len(records), 1, recorder_log.read_text()[-6000:]
+                        )
                         info = subprocess.run(
-                            [str(root / "bin/cyber_recorder"), "info", records[0].name],
-                            cwd=temporary, env=env, capture_output=True, text=True, timeout=10,
+                            [
+                                str(root / "bin/commands/cyber_recorder"),
+                                "info",
+                                records[0].name,
+                            ],
+                            cwd=temporary,
+                            env=env,
+                            capture_output=True,
+                            text=True,
+                            timeout=10,
                         )
                         self.assertEqual(info.returncode, 0, info.stdout + info.stderr)
                         self.assertIn(topic, info.stdout)
                         verified = subprocess.run(
                             [str(probe), str(records[0]), topic],
                             env=dict(env, LD_LIBRARY_PATH=str(root / "lib")),
-                            capture_output=True, text=True, timeout=10,
+                            capture_output=True,
+                            text=True,
+                            timeout=10,
                         )
-                        self.assertEqual(verified.returncode, 0, verified.stdout + verified.stderr)
+                        self.assertEqual(
+                            verified.returncode, 0, verified.stdout + verified.stderr
+                        )
                         if tool == "cyber_launch":
                             stopped = subprocess.run(
-                                [str(root / "bin/cyber_launch"), "stop", "share/sensors/sensors.launch"],
-                                env=env, capture_output=True, text=True, timeout=15,
+                                [
+                                    str(root / "bin/commands/cyber_launch"),
+                                    "stop",
+                                    "modules/sensors/launch/sensors.launch",
+                                ],
+                                env=env,
+                                capture_output=True,
+                                text=True,
+                                timeout=15,
                             )
-                            self.assertEqual(stopped.returncode, 0, stopped.stdout + stopped.stderr)
+                            self.assertEqual(
+                                stopped.returncode, 0, stopped.stdout + stopped.stderr
+                            )
                         else:
                             process.send_signal(signal.SIGINT)
                         process.wait(timeout=15)
@@ -124,23 +193,34 @@ class SensorIntegration(unittest.TestCase):
                             self.stop_process(recorder)
                         self.stop_process(process)
                 self.assertIn("Cleanup synthetic sensor", log.read_text())
-                print(f"Synthetic/{tool}: {verified.stdout.strip()}; terminal observed image; clean shutdown.")
+                print(
+                    f"Synthetic/{tool}: {verified.stdout.strip()}; "
+                    "terminal observed image; clean shutdown."
+                )
 
     def test_selected_product_plugins_load_without_device_initialization(self):
         source = Path(runfiles.Create().Rlocation(sys.argv[3]))
         with tempfile.TemporaryDirectory() as temporary:
             root = Path(temporary) / "relocated product"
             shutil.copytree(source, root)
-            env = dict(os.environ, XDG_CACHE_HOME=str(Path(temporary) / "cache"),
-                       LD_LIBRARY_PATH=str(root / "lib"))
+            env = dict(
+                os.environ,
+                XDG_CACHE_HOME=str(Path(temporary) / "cache"),
+                LD_LIBRARY_PATH=str(root / "lib"),
+            )
             env.pop("WHEELOS_CONFIG_ROOT", None)
             for tool, arguments in [
-                ("doctor", []), ("mainboard", ["-h"]), ("cyber_launch", ["--help"]),
-                ("cyber_recorder", ["--help"]), ("cyber_monitor", ["-h"]),
+                ("mainboard", ["-h"]),
+                ("cyber_launch", ["--help"]),
+                ("cyber_recorder", ["--help"]),
+                ("cyber_monitor", ["-h"]),
             ]:
                 result = subprocess.run(
-                    [str(root / "bin" / tool), *arguments], env=env,
-                    capture_output=True, text=True, timeout=10,
+                    [str(root / "bin/commands" / tool), *arguments],
+                    env=env,
+                    capture_output=True,
+                    text=True,
+                    timeout=10,
                 )
                 self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
             plugins = [
@@ -149,16 +229,26 @@ class SensorIntegration(unittest.TestCase):
                 if (root / "lib" / name).exists()
             ]
             self.assertTrue(plugins)
-            self.assertFalse((root / "lib/libsynthetic_sensor.so").exists())
+            self.assertFalse(list(root.rglob("libsynthetic_sensor.so")))
             result = subprocess.run(
-                [sys.executable, "-c",
-                 "import ctypes, os, sys; "
-                 "handles = [ctypes.CDLL(p, mode=os.RTLD_NOW) for p in sys.argv[1:]]",
-                 *plugins],
-                env=env, capture_output=True, text=True, timeout=15,
+                [
+                    sys.executable,
+                    "-c",
+                    "import ctypes, os, sys; "
+                    "handles = [ctypes.CDLL(p, mode=os.RTLD_NOW) "
+                    "for p in sys.argv[1:]]",
+                    *plugins,
+                ],
+                env=env,
+                capture_output=True,
+                text=True,
+                timeout=15,
             )
             self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
-            print(f"Selected product: {', '.join(Path(p).name for p in plugins)}; RTLD_NOW only, no devices.")
+            print(
+                f"Selected product: {', '.join(Path(p).name for p in plugins)}; "
+                "RTLD_NOW only, no devices."
+            )
 
 
 if __name__ == "__main__":

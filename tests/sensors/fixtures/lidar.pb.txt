@@ -1,0 +1,1 @@
+# Packaging/RTLD_NOW only. Never initialize a lidar with this empty fixture.

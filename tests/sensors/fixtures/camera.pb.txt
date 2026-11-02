@@ -1,0 +1,4 @@
+# Packaging/RTLD_NOW only. Never initialize a camera with this fixture.
+camera_dev: "/dev/wheelos-test-nonexistent-camera"
+frame_id: "packaging_only"
+channel_name: "/sensor_infra/test/packaging/image"

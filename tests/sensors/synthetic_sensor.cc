@@ -1,17 +1,21 @@
+// Copyright 2026 The WheelOS Authors.
+
 #include <cstdlib>
 #include <memory>
 #include <string>
 
+#include "wheelos_msgs/sensor_msgs/sensor_image.pb.h"
+
 #include "cyber/component/timer_component.h"
 #include "cyber/cyber.h"
-#include "wheelos_msgs/sensor_msgs/sensor_image.pb.h"
 
 class SyntheticSensor : public apollo::cyber::TimerComponent {
  public:
   bool Init() override {
     const char* topic = std::getenv("SENSOR_INFRA_TEST_TOPIC");
     if (topic == nullptr ||
-        std::string(topic).find("/sensor_infra/test/") != 0) {
+        (std::string(topic).find("/sensor_infra/test/") != 0 &&
+         std::string(topic).find("/system/test/") != 0)) {
       AERROR << "Synthetic sensor requires an isolated test topic";
       return false;
     }

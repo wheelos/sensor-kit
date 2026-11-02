@@ -1,7 +1,8 @@
 <cyber>
   <module>
     <name>sensors</name>
-    <dag_conf>@CONFIG_ROOT@/share/sensors/selected.dag</dag_conf>
+    <dag_conf>modules/sensors/dag/camera.dag</dag_conf>
+    <dag_conf>modules/sensors/dag/lidar.dag</dag_conf>
     <process_name>sensors</process_name>
   </module>
 </cyber>
