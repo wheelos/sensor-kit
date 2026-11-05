@@ -2,14 +2,6 @@ package(default_visibility = ["//visibility:public"])
 
 exports_files(["MODULE.bazel"])
 
-filegroup(
-    name = "dependency_lock",
-    srcs = glob(
-        ["MODULE.bazel.lock"],
-        allow_empty = True,
-    ),
-)
-
 alias(
     name = "mainboard",
     actual = "@wheelos_core//cyber/mainboard:mainboard",
@@ -31,11 +23,26 @@ alias(
 )
 
 filegroup(
-    name = "sensor_runtime_tools",
+    name = "core_tools",
     srcs = [
         ":cyber_launch",
         ":cyber_monitor",
         ":cyber_recorder",
         ":mainboard",
     ],
+)
+
+alias(
+    name = "vanjeelidar",
+    actual = "@hardware.lidar//vanjeelidar:libvanjeelidar_component.so",
+)
+
+alias(
+    name = "hesai",
+    actual = "@hardware.lidar//:hesai",
+)
+
+alias(
+    name = "camera",
+    actual = "@hardware.camera//:component",
 )

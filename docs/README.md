@@ -1,7 +1,14 @@
-# 正式项目文档
+# Documentation
 
-- [独立传感器产品架构](architecture/sensor-sdk-plan.md)：模块边界与交付验收。
-- [Bzlmod 构建与共享 FFmpeg](build/bazel-integration.md)：registry、SDK、配置和包构建。
-- [Sensor runtime 操作](operations/sensor-runtime.md)：共享 core 模块贡献、统一工具与配置、录制/监控及安装。
+- [Build and development workflow](build/bazel-integration.md): pinned source
+  dependencies, Bazel development build, and current install TODO.
+- [Local Vanjee operation](operations/sensor-runtime.md): DAG/config path
+  paradigm, start, inspect, and record a physical LiDAR using Core tools.
+- [Architecture](architecture/sensor-sdk-plan.md): middleware/product roles,
+  repository layout, and DAG/config resolution rules.
 
-车辆/CAN/whl-can 在独立 `vehicle-infra` 仓库维护。本仓库不依赖它。
+The supported workflow in this checkout is source development. The installed
+runtime workflow is marked TODO in the build guide.
+
+Vehicle, CAN, and whl-can are maintained in the independent `vehicle-infra`
+repository and are not dependencies of this repository.

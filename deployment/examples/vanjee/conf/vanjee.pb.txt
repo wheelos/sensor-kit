@@ -1,0 +1,38 @@
+config_base {
+  scan_channel: "/apollo/sensor/vanjeelidar/up/Scan"
+  point_cloud_channel: "/apollo/sensor/vanjeelidar/up/PointCloud2"
+  frame_id: "vanjeelidar_up"
+
+  source_type: ONLINE_LIDAR
+}
+
+imu_channel: "/apollo/sensor/vanjeelidar/up/Imu"
+imu_frame_id: "vanjeelidar_up_imu"
+
+driver_param {
+  # Confirm the actual device model before use.
+  lidar_type: "vanjee_720_16"
+  input_type: 1
+  input_param {
+    connect_type: 1
+    host_msop_port: 3001
+    lidar_msop_port: 3333
+    host_address: "192.168.10.3"
+    lidar_address: "192.168.10.6"
+  }
+  decoder_param {
+    publish_mode: 2
+    min_distance: 0.3
+    max_distance: 120
+    start_angle: 0
+    end_angle: 360
+    use_lidar_clock: false
+    use_offset_timestamp: true
+    imu_enable: 0
+    imu_orientation_enable: false
+    dense_points: false
+    wait_for_difop: true
+    config_from_file: false
+    point_cloud_enable: true
+  }
+}

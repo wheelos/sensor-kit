@@ -1,66 +1,62 @@
-# Sensor Bzlmod integration
+# Build and development workflow
 
-Bazel 8.8.1 builds external camera/Hesai components through `bazel_dep`.
-Driver sources are not copied here. This repository does not depend on
-vehicle-infra or an Apollo checkout.
+## Development mode
 
-`//products/sensors:module` is the public contribution for a final system
-using `@wheelos_core//runtime:runtime.bzl`. Core installs tools/configuration
-once and deduplicates declared native runfiles. Sensor contributions contain
-components, business configuration and root-relative DAG/launch resources.
-`runtime_module` also retains declared FFmpeg SDK provenance/license runfiles.
+The supported clean-checkout workflow imports pinned source repositories with
+VCS, builds with the `dev` profile, and then uses the direct Core commands
+described in the [Vanjee operation guide](../operations/sensor-runtime.md).
+Building does not start hardware.
 
-`//products/sensors:runtime`, `:run`, `:package` and `:install` use that same
-assembly contract with sensors as its only module. To add vehicle/algorithms,
-compose their contributions into one runtime; never concatenate separate
-installed core environments.
+### Requirements
 
-## Selection, configuration and SDK
+- Linux development host with Git, curl, a C++ build toolchain, and Ninja.
+- `python3-vcstool` (`vcs` command).
+- [Bazelisk](https://github.com/bazelbuild/bazelisk#installation), or Bazel
+  8.8.1. The repository pins 8.8.1 in `.bazelversion`.
+- Network access to the pinned Git repositories and the Bazel registries in
+  `.bazelrc.registry`.
 
-```bash
-bazel build --config=sensors-combined \
-  --//products/sensors:camera_config=//deployment:camera.pb.txt \
-  --//products/sensors:lidar_config=//deployment:lidar.pb.txt \
-  //products/sensors:runtime //products/sensors:package
-```
-
-`sensors-camera`, `sensors-lidar` and `sensors-combined` select one product's
-variants. Deployment labels above are examples, not defaults; each must expose
-one reviewed configuration file. Missing selection/configuration fails at
-analysis. Selecting/building/installing does not start a device.
-
-FFmpeg is the shared `hardware.build` extension. Release requires the root's
-checksummed SDK tag and declared runtime/license files; local SDK validation
-requires explicit `FFMPEG_MODE=development`, include/library paths and runtime
-library list. No ambient host-library scan is performed. GStreamer belongs to
-hardware.camera_gst; RTKLIB belongs to hardware.gnss, not these product sources.
-
-Use identical flags for archive and official rules_pkg installation:
-`bazel run //products/sensors:install -- --destdir=/absolute/new/versioned/path`.
-Choose a new directory outside customer data. Contents are `bin/commands`,
-`bin`, `lib`, `bazel-bin/modules`, `modules/sensors`, and common `conf`.
-`conf/system-manifest.json` records modules/content hashes, not a release lock.
-
-## Validation and release boundary
-
-The new `@wheelos_core//runtime` API requires an actual corrected module release.
-Unchanged older registry snapshots do not provide it. Default registries remain
-`.bazelrc.registry`; development uses explicit source overrides for core,
-messages, relevant hardware modules and explicit SDK/toolchain configuration.
-Local locks/source URLs must not be committed as release locks.
+Install the system packages and import source dependencies once from the
+repository root:
 
 ```bash
-bazel test <EXPLICIT_LOCAL_SOURCE_OPTIONS> --config=sensors-combined \
-  --flaky_test_attempts=1 --test_output=errors \
-  //runtime:tests //tests/sensors:integration
+sudo apt update
+sudo apt install git curl build-essential ninja-build python3-vcstool
+vcs import pkgs < deps.repos
 ```
 
-The integration runtime uses only a private synthetic image component for
-startup/pub/sub/recording/monitor checks. Selected real camera/Hesai plugins
-are tested with `RTLD_NOW` only, never initialized. Test-only packaging configs
-are separate from production configuration labels.
+`deps.repos` pins Core, common, transform, messages, and hardware to Git
+commits. VCS checks them out under `pkgs/`, which is intentionally ignored by
+the Sensor Kit Git repository. The hardware repository is a monorepo; Bazel
+overrides its `build`, `camera`, and `lidar` modules from their respective
+subdirectories. Third-party Bazel modules are still fetched from the configured
+registries.
 
-Apollo's final-system regression consumes this repository as an external
-Bzlmod module alongside vehicle-infra, using one recorder and configuration,
-independent process shutdown, archive extraction and official install relocation.
-Local success is not published-module, physical-device or calibration acceptance.
+Build the Vanjee component and Core tools:
+
+```bash
+bazel build --jobs=4 --config=dev //:vanjeelidar //:core_tools
+```
+
+Or build the explicit component and tool targets directly:
+
+```bash
+bazel build --jobs=4 --config=dev \
+  @hardware.lidar//vanjeelidar:libvanjeelidar_component.so \
+  //:mainboard //:cyber_recorder //:cyber_monitor
+```
+
+`.bazelrc` imports `.bazelrc.dev`; `--config=dev` enables its workspace-relative
+overrides into `pkgs/`. No Apollo checkout or absolute local source path is
+required. The `wheelos_transform` override is included because the pinned
+hardware source depends on it and it is not available from the configured
+registries.
+
+After building, source `scripts/env.sh` once in each terminal, then run
+`mainboard`, `cyber_monitor`, and `cyber_recorder` directly. The operation guide
+contains the exact startup, observation, and recording commands.
+
+### Install mode — TODO
+
+Packaging and installation targets are TODO. The current supported workflow is
+local source development with `deps.repos`, `.bazelrc.dev`, and `scripts/env.sh`.

@@ -58,6 +58,16 @@ compile_commands.json
 *.bak
 *.swp
 
+# Core runtime (glog) output
+*.INFO
+*.WARNING
+*.ERROR
+*.FATAL
+*.log.INFO.*
+*.log.WARNING.*
+*.log.ERROR.*
+*.log.FATAL.*
+
 # vcpkg
 vcpkg_installed/
 
@@ -71,3 +81,12 @@ Testing/
 /bazel-*
 __pycache__/
 *.py[cod]
+
+# Customer/local deployments and recorded data stay out of version control.
+/deployment/local/
+
+# Cyber middleware configuration symlink created by scripts/env.sh.
+/conf
+
+# Source checkouts imported from deps.repos are managed independently.
+/pkgs/

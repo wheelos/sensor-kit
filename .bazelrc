@@ -1,7 +1,5 @@
 import %workspace%/.bazelrc.registry
+try-import %workspace%/.bazelrc.dev
 
 build --lockfile_mode=update
 build:release --lockfile_mode=error
-build:sensors-camera --//products/sensors:selection=camera
-build:sensors-lidar --//products/sensors:selection=lidar
-build:sensors-combined --//products/sensors:selection=combined

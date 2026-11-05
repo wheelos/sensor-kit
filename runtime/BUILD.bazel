@@ -1,6 +1,0 @@
-package(default_visibility = ["//visibility:public"])
-
-test_suite(
-    name = "tests",
-    tests = ["@wheelos_core//runtime:materialize_runtime_test"],
-)

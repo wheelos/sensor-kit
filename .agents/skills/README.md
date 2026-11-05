@@ -1,5 +1,9 @@
 # Skills
 
-每个 Skill 使用独立目录并包含 `SKILL.md`，写明适用场景、输入、步骤、验证方法和停止条件。Skill 应描述可复用方法，不复制整篇正式设计文档。
+Each skill lives in its own directory and includes a `SKILL.md` describing its
+use cases, inputs, steps, validation, and stopping conditions. Skills should
+document reusable workflows rather than duplicate formal design documents.
 
-新增 Skill 前先确认任务确实需要可复用流程；单次调查放入 `.agents/notes/` 或直接更新正式文档，不为每项任务创建 Skill。
+Before adding a skill, confirm that the task needs a reusable workflow. Keep
+one-off investigations in `.agents/notes/` or update the formal documentation
+directly; do not create a skill for every task.

@@ -1,0 +1,21 @@
+repositories:
+  core:
+    type: git
+    url: https://github.com/wheelos/core.git
+    version: main
+  common:
+    type: git
+    url: https://github.com/wheelos/common.git
+    version: bbb7be9e2b29a7fe12f415e68ccaf55a94da1b8d
+  transform:
+    type: git
+    url: https://github.com/wheelos/transform.git
+    version: fd07841d6e7f71e709a3b9e7aa2c75e594c31e92
+  wheelos_msgs:
+    type: git
+    url: https://github.com/wheelos/wheelos_msgs.git
+    version: 853cd740b27aabec40ab21c1709b599aa582e877
+  hardware:
+    type: git
+    url: https://github.com/wheelos/hardware.git
+    version: b07c22b674c9c6a03f1ea61f99696e5ec08ecc98

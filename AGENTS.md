@@ -1,30 +1,46 @@
-# Agent 入口与工作规则
+# Agent Entry Point and Working Rules
 
-修改前先阅读相关构建目标、源码和正式文档；更具体目录的规则优先。
+Before making changes, read the relevant build targets, source code, and
+authoritative documentation. More specific instructions in a subdirectory
+take precedence.
 
-## 文档分层
+## Documentation Layers
 
-- `docs/`：正式架构、构建、使用和验收文档；更新 `docs/README.md` 索引。
-- `.agents/skills/`：可重复工作流程。
-- `.agents/knowledge/`：经过验证的稳定事实。
-- `.agents/notes/`：临时调查，不作为正式架构。
-- `.github/`：工程治理。
+- `docs/`: authoritative architecture, build, operation, and validation
+  documentation. Update `docs/README.md` when adding or moving documents.
+- `.agents/skills/`: reusable workflows.
+- `.agents/knowledge/`: verified, stable facts.
+- `.agents/notes/`: temporary investigations; not authoritative architecture.
+- `.github/`: project governance and automation.
 
-## 工程约定
+## Project Conventions
 
-- 本仓库仅包装 sensors 产品，相机/雷达组合是构建变体，不是额外产品。
-- vehicle/CAN/whl-can 归独立 `vehicle-infra` 仓库，两仓库互不依赖。
-- 驱动源码由外部模块维护，通过 `bazel_dep` 编译，不迁入本仓库。
-- 不依赖 Apollo-lite checkout 或启动脚本；默认使用发布 registry。
-- `hardware.build` 提供共享构建规则，FFmpeg 只复用其公开 extension。
-- SDK、设备配置和标定必须显式选择；不得默认启动硬件。
-- 通过 core 公开 runtime 规则提供模块贡献；最终系统只装一套工具和 Cyber 配置，构建/安装不启动设备。
-- 不覆盖已有数据，不提交构建输出、凭据、私有标定或设备数据。
-- 运行覆盖改动的最小测试，不伪造发布、锁或设备验收结果。
+- This repository is Sensor Kit. Its scope is sensor drivers, sensor
+  configurations, sensor combinations, startup, and validation.
+- `wheelos_core` is the middleware. It provides Cyber tools such as
+  `mainboard`, `cyber_launch`, `cyber_recorder`, and `cyber_monitor`, along with
+  component and configuration loading.
+- Middleware and driver source code is maintained in external repositories.
+  Pin and import it through `deps.repos` (`vcs import pkgs < deps.repos`), then
+  build it with Bazel and `.bazelrc.dev`; do not copy those sources into Sensor
+  Kit.
+- `scripts/env.sh` configures the generic Core tools and Cyber environment. It
+  sets `APOLLO_ROOT_DIR` and `CYBER_PATH` to the Sensor Kit repository root and
+  links `conf` to Core's built Cyber configuration. It must not be coupled to
+  one sensor, wrap Core commands, or start hardware.
+- In sensor DAGs, use paths relative to the repository root for
+  `module_library` (for example, `bazel-bin/external/...`) and
+  `config_file_path` (for example, `deployment/examples/...`).
+- Select SDKs, device configurations, and calibration explicitly. Building or
+  activating the environment must not start hardware.
+- Do not overwrite existing data or commit build outputs, imported `pkgs/`
+  checkouts, runtime logs, credentials, private calibration, or device data.
+- Run the smallest relevant validation for each change. Do not claim release,
+  lockfile, or hardware acceptance results that were not verified.
 
-## 入口
+## Entry Points
 
-- [文档索引](docs/README.md)
-- [产品架构](docs/architecture/sensor-sdk-plan.md)
-- [Bazel 构建](docs/build/bazel-integration.md)
-- [Sensor runtime](docs/operations/sensor-runtime.md)
+- [Documentation index](docs/README.md)
+- [Sensor architecture](docs/architecture/sensor-sdk-plan.md)
+- [Bazel build guide](docs/build/bazel-integration.md)
+- [Sensor operation guide](docs/operations/sensor-runtime.md)

@@ -1,83 +1,62 @@
 # Sensor product architecture
 
-## Independent product root
+## Layering and responsibilities
 
-`sensor-infra` packages camera/LiDAR drivers into one sensors runtime.
-Camera-only, Hesai-only and combined artifacts are build variants of that
-product. Vehicle/CAN/whl-can belong to the independent `vehicle-infra` root;
-no sibling checkout, module override or product dependency is required.
+1. **`wheelos_core` (Middleware)**: Provides the Cyber RT pub/sub runtime,
+   component class loader (`mainboard`), launch manager (`cyber_launch`), and
+   observation/recording tools (`cyber_monitor`, `cyber_recorder`).
+2. **`deps.repos` + `pkgs/` (Source management)**: Pins exact Git commits for
+   `core`, `common`, `transform`, `wheelos_msgs`, and `hardware`. `vcs` imports
+   them into `pkgs/` (ignored by this repository's Git tracking).
+3. **Bazel + `.bazelrc.dev` (Build system)**: Maps Bzlmod dependencies to the
+   local `pkgs/` checkouts and compiles both Core tools and selected sensor
+   driver components.
+4. **This repository (`sensor-kit`)**: Exposes top-level build targets in
+   `BUILD.bazel`, provides `scripts/env.sh` to activate the Core runtime
+   environment, and stores reference sensor configurations and DAGs under
+   `deployment/examples/`.
 
-| Module | Responsibility |
+Vehicle, CAN, and whl-can are maintained in the independent `vehicle-infra`
+repository.
+
+## Repository layout
+
+| Path | Responsibility |
 |---|---|
-| `hardware.camera` | Camera component and driver |
-| `hardware.lidar` | Selected LiDAR component and vendor dependencies |
-| `hardware.build` | Shared build settings and FFmpeg extension |
-| `wheelos_core` | Matching Cyber runtime and process tools |
+| `MODULE.bazel`, `.bazelrc*`, `.bazelversion` | Bazel module dependencies, registries, and `dev` overrides |
+| `deps.repos` | Pinned VCS source manifest for development checkouts |
+| `pkgs/` | VCS-imported source repositories (gitignored) |
+| `BUILD.bazel` | Top-level aliases for Core tools (`//:core_tools`) and sensor drivers (`//:vanjeelidar`, `//:hesai`, `//:camera`) |
+| `scripts/env.sh` | Generic Core runtime environment setup (`PATH`, `APOLLO_ROOT_DIR`, `CYBER_PATH`, `CYBER_IP`, `CYBER_DOMAIN_ID`, `TERMINFO`) |
+| `deployment/examples/` | Versioned reference DAGs and device configurations |
+| `docs/` | Architecture, build, and operating documentation |
 
-`MODULE.bazel`, its generated lock, build profiles and packaging targets are
-owned by this repository. Common packaging infrastructure is local to each
-standalone repository; no dependency on vehicle-infra is introduced.
+## DAG and configuration path resolution paradigm
 
-## Layout and responsibilities
+In `wheelos_core`, `mainboard` resolves paths using two environment roots:
 
-- `products/sensors`: selection, explicit device configuration and DAG/launch.
-- `build/`: declared component/runfile collection, SDK metadata and archive rules.
-- `runtime/`: assembly, selected-DAG combination, integrity/relocation and install.
-- `tests/fixtures`: packaging-only data, never operational device configuration.
-- `tests/sensors`: private synthetic-image Cyber integration and plugin loading,
-  never a shipped sensor driver or performance client.
-- `docs/`: build contract, operations and acceptance limits.
+- `CYBER_PATH` (`common::WorkRoot()`): used by `GlobalData` to read
+  `conf/cyber.pb.conf`, by `ModuleController::LoadModule` to resolve relative
+  `module_library` paths, and by `ComponentBase` as the base for non-`modules/`
+  relative config paths.
+- `APOLLO_ROOT_DIR` (`ResourceManager::SoftwareRoot()`): used by
+  `ResourceManager::ResolveConfigPath` to validate and resolve DAG files and
+  `config_file_path` entries within the software root.
 
-Driver sources remain external `bazel_dep` archives. Shared FFmpeg discovery
-is implemented only in external `hardware.build`; the product root supplies
-one checksummed SDK with explicit runtime files, version and license records.
-Local discovery is an opt-in development mode.
+`scripts/env.sh` unifies both roots to the repository root
+(`APOLLO_ROOT_DIR = CYBER_PATH = <repo_root>`) and links `<repo_root>/conf` to
+Core's built `cyber/conf` directory. This establishes a single, uniform
+root-relative paradigm for every sensor DAG:
 
-## Cyber tool and deployment boundary
+- **`module_library`**: write the repository-root-relative path under
+  `bazel-bin/`, for example:
+  `bazel-bin/external/hardware.lidar+/vanjeelidar/libvanjeelidar_component.so`
+- **`config_file_path`**: write the repository-root-relative path, for example:
+  `deployment/examples/vanjee/conf/vanjee.pb.txt`
+- **`mainboard -d`**: pass either a repository-root-relative path
+  (`deployment/examples/vanjee/dag/vanjee.dag`) or an `$APOLLO_ROOT_DIR`-prefixed
+  path (`"$APOLLO_ROOT_DIR/deployment/examples/vanjee/dag/vanjee.dag"`).
 
-Core owns Cyber runtime libraries, public tool targets and generic resource
-resolution. Hardware modules own device components and their declared runtime
-resources. The sensors product root selects components, reviewed configuration,
-tools, DAG/launch templates and an installation/integrity policy. No vehicle
-product dependency, sibling source setup script or driver source copy is used.
-
-The runtime explicitly packages mainboard, cyber_launch, cyber_recorder and
-cyber_monitor, including each native tool's shared-library runfiles. A
-`bazel_dep` does not implicitly deliver every executable in a module.
-Shared entries establish artifact roots and library search before executing
-native tools, while retaining the original CLI. Recorder/monitor preserve the
-calling directory; launch/mainboard resolve declared prepared product files.
-Ambient `WHEELOS_CONFIG_ROOT` overrides are explicitly rejected because product
-configuration is immutable within an artifact.
-
-The final external product root must select camera/lidar/combined and device
-configuration labels explicitly; dependency `.bazelrc` profiles are not
-inherited. Installed paths do not depend on Bazel external directory names.
-Tools and components are delivered as one versioned closure, rather than relying
-on a separately installed system core. Generic packaging code is maintained
-locally, following the same paradigm as vehicle without importing its files.
-
-## Validation and remaining gates
-
-Packaging tests cover camera-only, LiDAR-only and combined DAG selection,
-relocation, manifest checks, path rejection and non-overwriting installation.
-Local-registry package/ELF validation does not initialize devices.
-Test-only synthetic images validate both mainboard/launch lifecycle, recorder
-payload/descriptor roundtrip and terminal monitoring using the production
-packaging rule. Synthetic components/probes never enter the production runtime.
-This establishes Cyber tool integration, not actual device message delivery,
-frame rate, synchronization, calibration or performance acceptance.
-
-The LiDAR publisher still declares transform and multiple vendor SDKs during
-resolution; this root split does not split that external module internally.
-Production needs immutable hosted modules/SDK, a reviewed remote lock, ABI
-compatibility, valid calibration/configuration and approved device tests.
-Frame/drop rate, timing/synchronization, data quality and a live performance
-client are independent acceptance items, not consequences of `doctor`.
-# Current runtime implementation
-
-The shared-core implementation supersedes earlier standalone packaging details
-below. `//products/sensors:module` contributes sensor components/business
-resources; `@wheelos_core//runtime` owns final assembly, tools and authoritative
-middleware configuration. See [current integration](../build/bazel-integration.md)
-and [operation](../operations/sensor-runtime.md).
+Because both `WorkRoot()` and `SoftwareRoot()` resolve to `<repo_root>`, these
+paths work regardless of where the repository is cloned or which directory the
+shell is currently in.

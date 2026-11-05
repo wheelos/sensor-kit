@@ -1,0 +1,10 @@
+module_config {
+  module_library: "bazel-bin/external/hardware.lidar+/vanjeelidar/libvanjeelidar_component.so"
+  components {
+    class_name: "VanjeelidarComponent"
+    config {
+      name: "vanjeelidar_local"
+      config_file_path: "deployment/examples/vanjee/conf/vanjee.pb.txt"
+    }
+  }
+}

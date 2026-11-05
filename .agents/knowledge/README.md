@@ -1,5 +1,8 @@
 # Verified knowledge
 
-此目录只记录稳定且有证据的仓库事实。记录架构约定时注明对应源码/构建目标或正式文档；模块状态、临时故障和一次性命令输出不应伪装成长期事实。
+This directory records only stable repository facts supported by evidence.
+Cite the relevant source, build target, or formal documentation when recording
+an architectural convention. Do not present temporary module states, transient
+failures, or one-time command output as durable facts.
 
-权威、面向所有贡献者和集成方的规范仍放在 `docs/`。
+Authoritative guidance for contributors and integrators belongs in `docs/`.

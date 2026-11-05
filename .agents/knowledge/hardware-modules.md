@@ -1,23 +1,32 @@
-# Sensor product boundaries
+# Sensor architecture and path-resolution facts
 
-- This repository assembles only `products/sensors`. Camera, Hesai and their
-  combined selection are variants of one product, not separate products.
-- Driver implementations remain external `hardware.camera`/`hardware.lidar`
-  Bzlmod modules. No vehicle-infra checkout or product dependency is required.
-- `hardware.build` supplies shared FFmpeg rules; the root selects SDK inputs.
-  SDK archive mode is the default, local discovery is explicit development mode.
-- `products/sensors:module` contributes components, business files and declared
-  SDK dependencies through core's `RuntimeModuleInfo`; it owns no Cyber tools
-  or middleware configuration. `build/runtime.bzl` only re-exports core rules.
-- Core's `runtime_layout` assembles one tools/configuration root for one or more
-  module contributions. Public `bin/commands` entries establish artifact roots;
-  recorder/monitor retain caller-relative paths.
-- `products/sensors:runtime`, `:package` and `:install` use the same core layout
-  and official rules_pkg packaging. Multi-module systems consume `:module`,
-  rather than concatenating separately installed runtime trees.
-- Device configuration and selection are mandatory. No live performance client
-  or device acceptance is implied by a successful package or tool smoke test.
-- `tests/sensors` uses private synthetic images for Cyber tool validation and
-  loads production plugins without instantiating devices; it is never shipped.
-- See [build](../../docs/build/bazel-integration.md) and
+- **Four-layer boundary**:
+  1. `wheelos_core` is the Cyber RT middleware providing `mainboard`,
+     `cyber_launch`, `cyber_recorder`, `cyber_monitor`, `ModuleController`, and
+     `ResourceManager`.
+  2. `deps.repos` pins exact Git commits for `core`, `common`, `transform`,
+     `wheelos_msgs`, and `hardware`, imported into gitignored `pkgs/` via
+     `vcs import pkgs < deps.repos`.
+  3. `.bazelrc.dev` maps Bzlmod modules to `%workspace%/pkgs/...` for local
+     Bazel builds (`--config=dev`).
+  4. `sensor-kit` exposes top-level targets in `BUILD.bazel` (`//:core_tools`,
+     `//:vanjeelidar`, `//:hesai`, `//:camera`), sets up the runtime
+     environment via `scripts/env.sh`, and maintains reference sensor DAG/conf
+     files under `deployment/examples/`.
+- **Unified root-relative DAG paradigm**:
+  - In `wheelos_core`, `ModuleController::LoadModule` resolves relative
+     `module_library` paths against `common::WorkRoot()` (`CYBER_PATH`), while
+     `ComponentBase::ResolveComponentConfigPath` resolves non-`modules/`
+     relative `config_file_path` entries against `common::WorkRoot()` and then
+     validates through `ResourceManager::ResolveConfigPath` that the canonical
+     file resides inside `SoftwareRoot()` (`APOLLO_ROOT_DIR`).
+  - `scripts/env.sh` sets both `APOLLO_ROOT_DIR` and `CYBER_PATH` to the
+     repository root and symlinks `<repo_root>/conf` to Core's built
+     `cyber/conf` directory.
+  - Consequently, every DAG file uses repository-root-relative paths without
+    `../` traversal or `/apollo/` prefixes:
+    - `module_library`: `bazel-bin/external/<module>/<pkg>/lib<component>.so`
+    - `config_file_path`: `deployment/examples/<sensor>/conf/<sensor>.pb.txt`
+- See [architecture](../../docs/architecture/sensor-sdk-plan.md),
+  [build](../../docs/build/bazel-integration.md), and
   [operation](../../docs/operations/sensor-runtime.md).
