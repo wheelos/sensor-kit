@@ -1,5 +1,7 @@
 # Documentation
 
+- [Quick start](../README.md): clone, import dependencies, build, and run the
+  Vanjee LiDAR.
 - [Build and development workflow](build/bazel-integration.md): pinned source
   dependencies, Bazel development build, and current install TODO.
 - [Local Vanjee operation](operations/sensor-runtime.md): DAG/config path
@@ -9,6 +11,3 @@
 
 The supported workflow in this checkout is source development. The installed
 runtime workflow is marked TODO in the build guide.
-
-Vehicle, CAN, and whl-can are maintained in the independent `vehicle-infra`
-repository and are not dependencies of this repository.
