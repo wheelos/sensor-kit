@@ -1,0 +1,10 @@
+module_config {
+  module_library: "bazel-bin/external/hardware.gnss+/libgnss_component.so"
+  components {
+    class_name: "GnssDriverComponent"
+    config {
+      name: "novatel_local"
+      config_file_path: "deployment/examples/novatel/conf/novatel.pb.txt"
+    }
+  }
+}

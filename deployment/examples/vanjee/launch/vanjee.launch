@@ -1,0 +1,7 @@
+<cyber>
+    <module>
+        <name>vanjeelidar</name>
+        <dag_conf>deployment/examples/vanjee/dag/vanjee.dag</dag_conf>
+        <process_name>vanjeelidar</process_name>
+    </module>
+</cyber>

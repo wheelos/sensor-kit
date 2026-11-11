@@ -8,6 +8,7 @@ fi
 _sensor_root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)" || return 1
 _core_bin="$_sensor_root/bazel-bin/external/wheelos_core+/cyber"
 _mainboard_dir="$_core_bin/mainboard"
+_launch_dir="$_core_bin/tools/cyber_launch"
 _recorder_dir="$_core_bin/tools/cyber_recorder"
 _monitor_dir="$_core_bin/tools/cyber_monitor"
 _cyber_conf_dir="$_mainboard_dir/mainboard.runfiles/wheelos_core+/cyber/conf"
@@ -18,6 +19,7 @@ if [[ ! -f "$_cyber_conf_dir/cyber.pb.conf" ]]; then
 fi
 for _tool in \
   "$_mainboard_dir/mainboard" \
+  "$_launch_dir/cyber_launch" \
   "$_recorder_dir/cyber_recorder" \
   "$_monitor_dir/cyber_monitor"; do
   if [[ ! -x "$_tool" ]]; then
@@ -46,7 +48,7 @@ if [[ -z "${TERMINFO:-}" ]]; then
   done
 fi
 
-for _tool_dir in "$_mainboard_dir" "$_recorder_dir" "$_monitor_dir"; do
+for _tool_dir in "$_mainboard_dir" "$_launch_dir" "$_recorder_dir" "$_monitor_dir"; do
   case ":$PATH:" in
     *":$_tool_dir:"*) ;;
     *) PATH="$_tool_dir:$PATH" ;;
@@ -59,5 +61,5 @@ echo "APOLLO_ROOT_DIR=$APOLLO_ROOT_DIR"
 echo "CYBER_PATH=$CYBER_PATH"
 echo "CYBER_IP=$CYBER_IP CYBER_DOMAIN_ID=$CYBER_DOMAIN_ID"
 
-unset _sensor_root _core_bin _mainboard_dir _recorder_dir _monitor_dir
+unset _sensor_root _core_bin _mainboard_dir _launch_dir _recorder_dir _monitor_dir
 unset _cyber_conf_dir _tool _tool_dir _terminfo_dir

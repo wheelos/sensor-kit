@@ -24,7 +24,7 @@ repository.
 | Path | Responsibility |
 |---|---|
 | `MODULE.bazel`, `.bazelrc*`, `.bazelversion` | Bazel module dependencies, registries, and `dev` overrides |
-| `deps.repos` | Pinned VCS source manifest for development checkouts |
+| `deps.repos` | VCS source manifest tracking each dependency's `main` branch |
 | `pkgs/` | VCS-imported source repositories (gitignored) |
 | `BUILD.bazel` | Top-level aliases for Core tools (`//:core_tools`) and sensor drivers (`//:vanjeelidar`, `//:hesai`, `//:camera`) |
 | `scripts/env.sh` | Generic Core runtime environment setup (`PATH`, `APOLLO_ROOT_DIR`, `CYBER_PATH`, `CYBER_IP`, `CYBER_DOMAIN_ID`, `TERMINFO`) |
@@ -53,9 +53,14 @@ root-relative paradigm for every sensor DAG:
   `bazel-bin/external/hardware.lidar+/vanjeelidar/libvanjeelidar_component.so`
 - **`config_file_path`**: write the repository-root-relative path, for example:
   `deployment/examples/vanjee/conf/vanjee.pb.txt`
-- **`mainboard -d`**: pass either a repository-root-relative path
-  (`deployment/examples/vanjee/dag/vanjee.dag`) or an `$APOLLO_ROOT_DIR`-prefixed
-  path (`"$APOLLO_ROOT_DIR/deployment/examples/vanjee/dag/vanjee.dag"`).
+- **`cyber_launch start`**: pass the absolute path to the sensor's repository-
+  root-relative `.launch` file. Its `<dag_conf>` uses the same root-relative
+  DAG path as `mainboard -d`.
+- **`mainboard -d`**: remains available as a lower-level entry point and
+  accepts either a repository-root-relative path
+  (`deployment/examples/vanjee/dag/vanjee.dag`) or an `$APOLLO_ROOT_DIR`-
+  prefixed path
+  (`"$APOLLO_ROOT_DIR/deployment/examples/vanjee/dag/vanjee.dag"`).
 
 Because both `WorkRoot()` and `SoftwareRoot()` resolve to `<repo_root>`, these
 paths work regardless of where the repository is cloned or which directory the

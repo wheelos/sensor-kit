@@ -1,0 +1,7 @@
+<cyber>
+    <module>
+        <name>novatel</name>
+        <dag_conf>deployment/examples/novatel/dag/novatel.dag</dag_conf>
+        <process_name>novatel</process_name>
+    </module>
+</cyber>

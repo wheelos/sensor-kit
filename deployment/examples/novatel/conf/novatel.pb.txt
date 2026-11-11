@@ -1,0 +1,20 @@
+data {
+  format: NOVATEL_BINARY
+  serial {
+    device: "/dev/ttyUSB4"
+    baud_rate: 460800
+  }
+}
+
+rtk_solution_type: RTK_RECEIVER_SOLUTION
+imu_type: SCHA634_D03
+
+novatel_config {
+  # Must match the receiver's actual RAWIMU output rate.
+  rawimu_rate_hz: 100
+  # Matches CORRIMUDATAB ONTIME 0.01 configured on the receiver.
+  corrimu_rate_hz: 100
+}
+
+# Provisional UTM zone 50; confirm the deployment zone before using odometry.
+proj4_text: "+proj=utm +zone=50 +ellps=WGS84 +towgs84=0,0,0,0,0,0,0 +units=m +no_defs"

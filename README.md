@@ -23,9 +23,10 @@ sudo apt install git curl build-essential ninja-build python3-vcstool
 vcs import pkgs < deps.repos
 ```
 
-`deps.repos` pins the external source revisions. `pkgs/` is managed by VCS and
-ignored by this repository's Git tracking. Third-party Bazel modules are
-fetched from the registries configured in `.bazelrc.registry`.
+`deps.repos` tracks the latest `main` branch of each external source
+repository. `pkgs/` is managed by VCS and ignored by this repository's Git
+tracking. Third-party Bazel modules are fetched from the registries configured
+in `.bazelrc.registry`.
 
 ## 2. Build the driver and Core tools
 
@@ -50,8 +51,10 @@ In **Terminal 1**, from the repository directory:
 
 ```bash
 source scripts/env.sh
-mainboard -d "$APOLLO_ROOT_DIR/deployment/examples/vanjee/dag/vanjee.dag"
+cyber_launch start "$APOLLO_ROOT_DIR/deployment/examples/vanjee/launch/vanjee.launch"
 ```
+
+This uses Core's unified launch entry point. Press Ctrl+C to stop the launch.
 
 ## 5. View channels
 
@@ -67,7 +70,8 @@ Look for:
 - `/apollo/sensor/vanjeelidar/up/PointCloud2`
 - `/apollo/sensor/vanjeelidar/up/Imu`
 
-`cyber_monitor` is interactive and requires a terminal.
+`cyber_monitor` is interactive and requires a terminal. Stop the launch with
+Ctrl+C in Terminal 1 when finished.
 
 ## 6. Record point cloud and IMU
 
@@ -92,8 +96,7 @@ cyber_recorder info "${record_base}.00000"
 ```
 
 Core writes numbered record files such as `vanjee.record.00000`. The unique
-directory created by `mktemp` avoids overwriting existing recordings. Stop
-`mainboard` with Ctrl+C in Terminal 1 when finished.
+directory created by `mktemp` avoids overwriting existing recordings.
 
 ## More information
 

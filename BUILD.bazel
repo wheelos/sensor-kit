@@ -46,3 +46,8 @@ alias(
     name = "camera",
     actual = "@hardware.camera//:component",
 )
+
+alias(
+    name = "gnss",
+    actual = "@hardware.gnss//:component",
+)
